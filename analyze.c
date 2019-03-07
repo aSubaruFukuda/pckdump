@@ -43,7 +43,7 @@ int analyze_ether(u_char *data, int size) {
 	ptr += sizeof(struct ether_header);
 	rest -= sizeof(struct ether_header);
 
-	print_ethernet_header(eh, stdout);
+	show_ethernet_header(eh, stdout);
 
 	eth_type = ntohs(eh->ether_type);
 	switch (eth_type) {
@@ -78,7 +78,7 @@ int analyze_arp(u_char *data, int size) {
 
 	ptr += sizeof(struct ether_arp);
 	rest -= sizeof(struct ether_arp);
-	print_arp_header(arp, stdout);
+	show_arp_header(arp, stdout);
 	return 0;
 }
 
@@ -111,7 +111,7 @@ int analyze_ip(u_char *data, int size) {
 		ptr += option_len;
 		rest -= option_len;
 	}
-	print_ip_header(iphdr, option, option_len, stdout);
+	show_ip_header(iphdr, option, option_len, stdout);
 
 	ip_type = iphdr->protocol;
 	switch(ip_type) {
@@ -148,7 +148,7 @@ int analyze_ipv6(u_char *data, int size) {
 	ptr += sizeof(struct ip6_hdr);
 	rest -= sizeof(struct ip6_hdr);
 
-	print_ip6_header(ip6, stdout);
+	show_ipv6_header(ip6, stdout);
 
 	ip6_type = ip6->ip6_nxt;
 	switch(ip6_type) {
@@ -183,7 +183,7 @@ int analyze_icmp(u_char *data, int size) {
 
 	ptr += sizeof(struct icmp);
 	rest -= sizeof(struct icmp);
-	print_icmp_header(icmp, stdout);
+	show_icmp_header(icmp, stdout);
 	return 0;
 }
 
@@ -203,7 +203,7 @@ int analyze_icmp6(u_char *data, int size) {
 
 	ptr += sizeof(struct icmp6_hdr);
 	rest -= sizeof(struct icmp6_hdr);
-	print_icmp6_header(icmp6, stdout);
+	show_icmpv6_header(icmp6, stdout);
 	return 0;
 }
 
@@ -223,7 +223,7 @@ int analyze_tcp(u_char *data, int size) {
 
 	ptr += sizeof(struct tcphdr);
 	rest -= sizeof(struct tcphdr);
-	print_tcp_header(tcphdr, stdout);
+	show_tcp_header(tcphdr, stdout);
 	return 0;
 }
 
@@ -243,6 +243,6 @@ int analyze_udp(u_char *data, int size) {
 
 	ptr += sizeof(struct udphdr);
 	rest -= sizeof(struct udphdr);
-	print_udp_header(udphdr, stdout);
+	show_udp_header(udphdr, stdout);
 	return 0;
 }

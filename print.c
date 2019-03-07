@@ -188,7 +188,7 @@ int *get_icmp6_type_and_code_str(
 	}
 	return 0;
 }
-int print_ethernet_header(struct ether_header *eh, FILE *fp) {
+int show_ethernet_header(struct ether_header *eh, FILE *fp) {
 	char buf[128];
 	fprintf(fp, "----------ETHERNET HEADER----------\n");
 	fprintf(fp, "dest=%s\n", get_mac_addr_str(eh->ether_dhost, buf, sizeof(buf)));
@@ -211,7 +211,7 @@ int print_ethernet_header(struct ether_header *eh, FILE *fp) {
 	return 0;
 }
 
-int print_arp_header(struct ether_arp *arp, FILE *fp) {
+int show_arp_header(struct ether_arp *arp, FILE *fp) {
 	char buf[128];
 
 	fprintf(fp, "----------ARP HEADER----------\n");
@@ -249,7 +249,7 @@ int print_arp_header(struct ether_arp *arp, FILE *fp) {
 	return 0;
 }
 
-int print_ip_header(struct iphdr *ip, u_char *option, int option_len, FILE *fp) {
+int show_ip_header(struct iphdr *ip, u_char *option, int option_len, FILE *fp) {
 	char buf[128];
 	int i;
 	uint8_t ip_type;
@@ -293,7 +293,7 @@ int print_ip_header(struct iphdr *ip, u_char *option, int option_len, FILE *fp) 
 	return 0;
 }
 
-int print_ip6_header(struct ip6_hdr *ip6, FILE *fp) {
+int show_ipv6_header(struct ip6_hdr *ip6, FILE *fp) {
 	char buf[128];
 	uint8_t nxt_hdr;
 	uint32_t ip6_flow_le;
@@ -329,7 +329,7 @@ int print_ip6_header(struct ip6_hdr *ip6, FILE *fp) {
 	return 0;
 }
 
-int print_icmp_header(struct icmp *icmp, FILE *fp) {
+int show_icmp_header(struct icmp *icmp, FILE *fp) {
 	char buf1[64], buf2[64];
 
 	fprintf(fp, "----------ICMP HEADER----------\n");
@@ -345,7 +345,7 @@ int print_icmp_header(struct icmp *icmp, FILE *fp) {
 	return 0;
 }
 
-int print_icmp6_header(struct icmp6_hdr *icmp6, FILE *fp) {
+int show_icmpv6_header(struct icmp6_hdr *icmp6, FILE *fp) {
 	char buf1[64], buf2[64];
 
 	fprintf(fp, "----------ICMPv6 HEADER----------\n");
@@ -361,7 +361,7 @@ int print_icmp6_header(struct icmp6_hdr *icmp6, FILE *fp) {
 	return 0;
 }
 
-int print_tcp_header(struct tcphdr *tcp, FILE *fp) {
+int show_tcp_header(struct tcphdr *tcp, FILE *fp) {
 	fprintf(fp, "----------TCP HEADER----------\n");
 	fprintf(fp, "src=%u\n", ntohs(tcp->source));
 	fprintf(fp, "dst=%u\n", ntohs(tcp->dest));
@@ -379,7 +379,7 @@ int print_tcp_header(struct tcphdr *tcp, FILE *fp) {
 	fprintf(fp, "urg_ptr=%u\n", ntohs(tcp->urg_ptr));
 	return 0;
 }
-int print_udp_header(struct udphdr *udp, FILE *fp) {
+int show_udp_header(struct udphdr *udp, FILE *fp) {
 	fprintf(fp, "----------UDP HEADER----------\n");
 	fprintf(fp, "src=%u\n", ntohs(udp->source));
 	fprintf(fp, "dst=%u\n", ntohs(udp->dest));

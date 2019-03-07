@@ -9,4 +9,4 @@ $(PROGRAM):$(OBJS)
 	$(RM) $(OBJS)
 
 clean:
-	$(RM) $(TARGET)
+	$(RM) $(PROGRAM)
