@@ -20,9 +20,9 @@
 #include "analyze.h"
 
 int analyze_packet(u_char *data, int size) {
-	printf("PACKET START============>\n");
+	printf("PACKET START=====================================>\n");
 	analyze_ether(data, size);
-	printf("<==============PACKET END\n");
+	printf("<=======================================PACKET END\n");
 	return 0;
 }
 
