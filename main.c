@@ -11,6 +11,13 @@
 #include <netinet/ip.h>
 #include "analyze.h"
 
+#if defined(PCAP)
+#include <pcap.h>
+
+#define CAPTURE_FILE_NAME "test.pcap"
+#define TCPDUMP_MAGIC 0xa1b2c3d4
+#endif
+
 int initialize_raw_socket(char *ifdev);
 int set_promiscuous_mode(int soc, struct ifreq *req);
 
@@ -25,14 +32,42 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "initialize_raw_socket:error: %s\n", argv[1]);
 		return -1;
 	}
+#if defined(PCAP)
+		FILE *cap_fp;
+		struct pcap_file_header pcap_header;
+		uint32_t jp_timezone;
+		cap_fp = fopen(CAPTURE_FILE_NAME, "wb+");
+		if (cap_fp == NULL) {
+			perror("fopen");
+			close(soc);
+			return -1;
+		}
+		memset(&pcap_header, 0, sizeof(struct pcap_file_header));
+		pcap_header.magic = TCPDUMP_MAGIC;
+		pcap_header.version_major = PCAP_VERSION_MAJOR;
+		pcap_header.version_minor = PCAP_VERSION_MINOR;
+		jp_timezone = 3600 * 9;
+		pcap_header.thiszone = jp_timezone;
+		pcap_header.sigfigs = 0;
+		pcap_header.snaplen = 2048;
+		pcap_header.linktype = DLT_EN10MB;
+		fwrite(&pcap_header, sizeof(struct pcap_file_header), 1, cap_fp);
+#endif
 	while (1) {
 		if((size = read(soc, buf, sizeof(buf))) <= 0) {
 			perror("read");
 		} else {
 			if (analyze_packet(buf, size) == -1) {
-			close(soc);
+				close(soc);
 				return -1;
 			}
+#if defined(PCAP)
+			struct pcap_pkthdr pcap_pkt_hdr;
+			gettimeofday(&pcap_pkt_hdr.ts, NULL);
+			pcap_pkt_hdr.len = pcap_pkt_hdr.caplen = size;
+			fwrite(&pcap_pkt_hdr, sizeof(struct pcap_pkthdr), 1, cap_fp);
+			fwrite(buf, size, 1, cap_fp);
+#endif
 		}
 	}
 	close(soc);

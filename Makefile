@@ -1,7 +1,7 @@
 PROGRAM=pckdump
 OBJS=main.o analyze.o show.o
 SRCS=$(OBJS:%.o=%.c)
-CFLAGS=-g -Wall
+CFLAGS=-g -Wall -DPCAP
 LDLIBS=
 
 $(PROGRAM):$(OBJS)
