@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
 	int soc, size;
 	u_char buf[65535];
 
-	if (argc != 1) {
+	if (argc <= 1) {
 		fprintf(stderr, "device-name");
 	}
 	if ((soc = initialize_raw_socket(argv[1])) == -1) {
@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
 	}
 	while (1) {
 		if((size = read(soc, buf, sizeof(buf))) <= 0) {
-			perror(read);
+			perror("read");
 		} else {
 			if (analyze_packet(buf, size) == -1) {
 			close(soc);

@@ -41,6 +41,9 @@ int get_icmp_type_and_code_str(
 		uint8_t icmp_type, char *type_buf, socklen_t type_buf_size,
 		uint8_t icmp_code, char *code_buf, socklen_t code_buf_size) {
 	int type_arr_len;
+	int code_unrech_arr_len;
+	int code_redirect_arr_len;
+	int code_tm_exceed_arr_len;
 
 	char *type_arr[] = {
 		"ICMP_ECHOREPLY",
@@ -92,9 +95,9 @@ int get_icmp_type_and_code_str(
 		"ICMP_EXC_FRAGTIME"
 	};
 	type_arr_len = sizeof(type_arr);
-	code_unrech_arr_len = sizeof(code_unrech_arr);
-	code_redirect_arr_len = sizeof(code_redirect_arr);
-	code_tm_exceed_arr_len = sizeof(code_tm_exceed_arr);
+	code_unrech_arr_len = sizeof(code_unrech_arr) / sizeof (char *);
+	code_redirect_arr_len = sizeof(code_redirect_arr) / sizeof (char *);
+	code_tm_exceed_arr_len = sizeof(code_tm_exceed_arr) / sizeof (char *);
 	if (icmp_type < (type_arr_len - 1)) {
 		strncpy(type_buf, type_arr[icmp_type], type_buf_size);
 	}else {
@@ -103,21 +106,21 @@ int get_icmp_type_and_code_str(
 	switch (icmp_type) {
 		case ICMP_DEST_UNREACH:
 			if (icmp_code < (code_unrech_arr_len - 1)) {
-				snprintf(code_buf, code_buf_size, code_unrech_arr[icmp_code]);
+				strncpy(code_buf, code_unrech_arr[icmp_code], code_buf_size);
 			}else {
 				snprintf(code_buf, code_buf_size, "unknown code");
 			}
 			break;
 		case ICMP_REDIRECT:
 			if (icmp_code < (code_redirect_arr_len - 1)) {
-				snprintf(code_buf, code_buf_size, code_redirect_arr[icmp_code]);
+				strncpy(code_buf, code_redirect_arr[icmp_code], code_buf_size);
 			}else {
 				snprintf(code_buf, code_buf_size, "unknown code");
 			}
 			break;
 		case ICMP_TIME_EXCEEDED:
 			if (icmp_code < (code_tm_exceed_arr_len - 1)) {
-				snprintf(code_buf, code_buf_size, code_tm_exceed_arr[icmp_code]);
+				strncpy(code_buf, code_tm_exceed_arr[icmp_code], code_buf_size);
 			}else {
 				snprintf(code_buf, code_buf_size, "unknown code");
 			}
@@ -129,7 +132,7 @@ int get_icmp_type_and_code_str(
 	return 0;
 }
 
-char *get_icmp6_type_and_code_str(
+int *get_icmp6_type_and_code_str(
 		uint8_t icmp6_type, char *type_buf, socklen_t type_buf_size,
 		uint8_t icmp6_code, char *code_buf, socklen_t code_buf_size) {
 
@@ -167,22 +170,23 @@ char *get_icmp6_type_and_code_str(
 		"ICMP6_PARAMPROB_NEXTHEADER",
 		"ICMP6_PARAMPROB_OPTION"
 	};
-	if (icmp_type != 0 && icmp_type <= 4) {
-		snprintf(type_buf, type_buf_size, type_arr1[icmp_type]);
-	} else if (128 <= icmp_type && icmp_type <= 137) {
-		strncpy(type_buf, type_arr2[icmp-type-128], type_buf_size);
+	if (icmp6_type != 0 && icmp6_type <= 4) {
+		strncpy(type_buf, type_arr1[icmp6_type], type_buf_size);
+	} else if (128 <= icmp6_type && icmp6_type <= 137) {
+		strncpy(type_buf, type_arr2[icmp6_type-128], type_buf_size);
 	}else {
 		snprintf(type_buf, type_buf_size, "unknown");
 	}
-	if (icmp_type == ICMP6_DST_UNREACH && icmp_code < sizeof(code_arr1)) {
-		snprintf(code_buf, code_buf_size, code_arr1[icmp_code]);
-	} else if (icmp_type == ICMP6_TIME_EXCEEDED && icmp_code < sizeof(code_arr2)) {
-		snprintf(code_buf, code_buf_size, code_arr2[icmp_code]);
-	} else if (icmp_type == ICMP6_PARAM_PROB && icmp_code < sizeof(code_arr3)) {
-		snprintf(code_buf, code_buf_size, code_arr3[icmp_code]);
+	if (icmp6_type == ICMP6_DST_UNREACH && icmp6_code < sizeof(code_arr1)) {
+		strncpy(code_buf, code_arr1[icmp6_code], code_buf_size);
+	} else if (icmp6_type == ICMP6_TIME_EXCEEDED && icmp6_code < sizeof(code_arr2)) {
+		strncpy(code_buf, code_arr2[icmp6_code], code_buf_size);
+	} else if (icmp6_type == ICMP6_PARAM_PROB && icmp6_code < sizeof(code_arr3)) {
+		strncpy(code_buf, code_arr3[icmp6_code], code_buf_size);
 	} else {
 		snprintf(code_buf, code_buf_size, "unknown");
 	}
+	return 0;
 }
 int print_ethernet_header(struct ether_header *eh, FILE *fp) {
 	char buf[128];
@@ -240,34 +244,21 @@ int print_arp_header(struct ether_arp *arp, FILE *fp) {
 	}
 	fprintf(fp, "hw_src=%s\n", get_mac_addr_str(arp->arp_sha, buf, sizeof(buf)));
 	fprintf(fp, "ip_src=%s\n", get_ip4arp_str(arp->arp_spa, buf, sizeof(buf)));
-	fprintf(fp, "hw_dst=%s\n", get_mac_addr_str(arp->arp_sha, buf, sizeof(buf)));
+	fprintf(fp, "hw_dst=%s\n", get_mac_addr_str(arp->arp_tha, buf, sizeof(buf)));
 	fprintf(fp, "ip_dst=%s\n", get_ip4arp_str(arp->arp_tpa, buf, sizeof(buf)));
-	switch(ntohs(eh->ether_type)) {
-		case ETHERTYPE_IP:
-			fprintf(fp, "(IP)\n");
-			break;
-		case ETHERTYPE_IPV6:
-			fprintf(fp, "(IPv6)\n");
-			break;
-		case ETHERTYPE_ARP:
-			fprintf(fp, "(ARP)\n");
-			break;
-		default:
-			fprintf(fp, "(unknown)\n");
-			break;
-	}
 	return 0;
 }
 
 int print_ip_header(struct iphdr *ip, u_char *option, int option_len, FILE *fp) {
 	char buf[128];
 	int i;
+	uint8_t ip_type;
 
 	fprintf(fp, "ip header------------------------------------------\n");
 	fprintf(fp, "version=%u\n", ip->version);
 	fprintf(fp, "hdr_len=%u\n", ip->ihl);
 	fprintf(fp, "tos=%02X\n", ip->tos);
-	fprintf(fp, "total_len=%u\n", ntohs(ip->tot_len);
+	fprintf(fp, "total_len=%u\n", ntohs(ip->tot_len));
 	fprintf(fp, "id=%u\n", ntohs(ip->id));
 	//flag_off
 	fprintf(fp, "ttl=%u\n", ntohs(ip->ttl));
@@ -287,8 +278,8 @@ int print_ip_header(struct iphdr *ip, u_char *option, int option_len, FILE *fp) 
 			break;
 	}
 	fprintf(fp, "check=%04X\n", ntohs(ip->check));
-	fprintf(fp, "src_addr=%s\n", get_ip4ip_str(ip->saddr, buf, sizeof(buf)));
-	fprintf(fp, "src_addr=%s\n", get_ip4ip_str(ip->daddr, buf, sizeof(buf)));
+	fprintf(fp, "src_addr=%s\n", get_ip4ip_str(&ip->saddr, buf, sizeof(buf)));
+	fprintf(fp, "src_addr=%s\n", get_ip4ip_str(&ip->daddr, buf, sizeof(buf)));
 	if (option_len) {
 		fprintf(fp, "option:");
 		for (i = 0; i < option_len; i++) {
