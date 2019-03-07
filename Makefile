@@ -1,5 +1,5 @@
 PROGRAM=pckdump
-OBJS=main.o analyze.o print.o
+OBJS=main.o analyze.o show.o
 SRCS=$(OBJS:%.o=%.c)
 CFLAGS=-g -Wall
 LDLIBS=

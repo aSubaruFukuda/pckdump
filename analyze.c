@@ -16,7 +16,7 @@
 #include <netinet/icmp6.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
-#include "print.h"
+#include "show.h"
 #include "analyze.h"
 
 int analyze_packet(u_char *data, int size) {
