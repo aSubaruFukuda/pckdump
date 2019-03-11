@@ -34,7 +34,6 @@ int analyze_ether(u_char *data, int size) {
 
 	ptr = data;
 	rest = size;
-
 	if (rest < sizeof(struct ether_header)) {
 		fprintf(stderr, "rest(%d) < sizeof(struct ether_header)\n", rest);
 		return -1;
@@ -42,9 +41,7 @@ int analyze_ether(u_char *data, int size) {
 	eh = (struct ether_header *)ptr;
 	ptr += sizeof(struct ether_header);
 	rest -= sizeof(struct ether_header);
-
 	show_ethernet_header(eh, stdout);
-
 	eth_type = ntohs(eh->ether_type);
 	switch (eth_type) {
 		case ETHERTYPE_ARP:
@@ -69,13 +66,11 @@ int analyze_arp(u_char *data, int size) {
 
 	ptr = data;
 	rest = size;
-
 	if (rest < sizeof(struct ether_arp)) {
 		fprintf(stderr, "rest(%d)<sizeof(struct ether_arp)\n", rest);
 		return -1;
 	}
 	arp = (struct ether_arp *)ptr;
-
 	ptr += sizeof(struct ether_arp);
 	rest -= sizeof(struct ether_arp);
 	show_arp_header(arp, stdout);
@@ -92,7 +87,6 @@ int analyze_ip(u_char *data, int size) {
 
 	ptr = data;
 	rest = size;
-
 	if (rest < sizeof(struct iphdr)) {
 		fprintf(stderr, "rest(%d)<sizeof(struct iphdr)\n", rest);
 		return -1;
@@ -100,7 +94,6 @@ int analyze_ip(u_char *data, int size) {
 	iphdr = (struct iphdr *)ptr;
 	ptr += sizeof(struct iphdr);
 	rest -= sizeof(struct iphdr);
-
 	option_len = iphdr->ihl * 4 - sizeof(struct iphdr);
 	if (option_len > 0) {
 		if (1500 <= option_len) {
@@ -111,8 +104,11 @@ int analyze_ip(u_char *data, int size) {
 		ptr += option_len;
 		rest -= option_len;
 	}
+	//if (checkIPchecksum(iphdr, option, option_len) == 0 ) {
+	//	fprintf(stderr, "checksum error");
+	//	return -1;
+	//}
 	show_ip_header(iphdr, option, option_len, stdout);
-
 	ip_type = iphdr->protocol;
 	switch(ip_type) {
 		case IPPROTO_ICMP:
@@ -139,7 +135,6 @@ int analyze_ipv6(u_char *data, int size) {
 
 	ptr = data;
 	rest = size;
-
 	if (rest < sizeof(struct ip6_hdr)) {
 		fprintf(stderr, "rest(%d)<sizeof(struct ip6_hdr)\n", rest);
 		return -1;
@@ -147,9 +142,7 @@ int analyze_ipv6(u_char *data, int size) {
 	ip6 = (struct ip6_hdr *)ptr;
 	ptr += sizeof(struct ip6_hdr);
 	rest -= sizeof(struct ip6_hdr);
-
 	show_ipv6_header(ip6, stdout);
-
 	ip6_type = ip6->ip6_nxt;
 	switch(ip6_type) {
 		case IPPROTO_ICMPV6:
@@ -174,13 +167,11 @@ int analyze_icmp(u_char *data, int size) {
 
 	ptr = data;
 	rest = size;
-
 	if (rest < sizeof(struct icmp)) {
 		fprintf(stderr, "rest(%d)<sizeof(struct icmp)\n", rest);
 		return -1;
 	}
 	icmp = (struct icmp *)ptr;
-
 	ptr += sizeof(struct icmp);
 	rest -= sizeof(struct icmp);
 	show_icmp_header(icmp, stdout);
@@ -194,13 +185,11 @@ int analyze_icmp6(u_char *data, int size) {
 
 	ptr = data;
 	rest = size;
-
 	if (rest < sizeof(struct icmp6_hdr)) {
 		fprintf(stderr, "rest(%d)<sizeof(struct icmp6_hdr)\n", rest);
 		return -1;
 	}
 	icmp6 = (struct icmp6_hdr *)ptr;
-
 	ptr += sizeof(struct icmp6_hdr);
 	rest -= sizeof(struct icmp6_hdr);
 	show_icmpv6_header(icmp6, stdout);
@@ -214,13 +203,11 @@ int analyze_tcp(u_char *data, int size) {
 
 	ptr = data;
 	rest = size;
-
 	if (rest < sizeof(struct tcphdr)) {
 		fprintf(stderr, "rest(%d)<sizeof(struct tcphdr)\n", rest);
 		return -1;
 	}
 	tcphdr = (struct tcphdr *)ptr;
-
 	ptr += sizeof(struct tcphdr);
 	rest -= sizeof(struct tcphdr);
 	show_tcp_header(tcphdr, stdout);
@@ -234,13 +221,11 @@ int analyze_udp(u_char *data, int size) {
 
 	ptr = data;
 	rest = size;
-
 	if (rest < sizeof(struct udphdr)) {
 		fprintf(stderr, "rest(%d)<sizeof(struct udphdr)\n", rest);
 		return -1;
 	}
 	udphdr = (struct udphdr *)ptr;
-
 	ptr += sizeof(struct udphdr);
 	rest -= sizeof(struct udphdr);
 	show_udp_header(udphdr, stdout);
