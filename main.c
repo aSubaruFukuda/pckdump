@@ -110,7 +110,7 @@ int set_promiscuous_mode(int soc, struct ifreq *ifreq) {
 		return -1;
 	}
 	ifreq->ifr_flags = ifreq->ifr_flags | IFF_PROMISC;
-	if (ioctl(soc, SIOCSIFFLAGS, req) < 0) {
+	if (ioctl(soc, SIOCSIFFLAGS, ifreq) < 0) {
 		perror("ioctl");
 		close(soc);
 		return -1;
