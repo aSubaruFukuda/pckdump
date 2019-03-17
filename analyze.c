@@ -19,6 +19,15 @@
 #include "show.h"
 #include "analyze.h"
 
+static int analyze_ether(u_char *data, int size);
+static int analyze_arp(u_char *data, int size);
+static int analyze_ip(u_char *data, int size);
+static int analyze_ipv6(u_char *data, int size);
+static int analyze_icmp(u_char *data, int size);
+static int analyze_icmp6(u_char *data, int size);
+static int analyze_tcp(u_char *data, int size);
+static int analyze_udp(u_char *data, int size);
+
 int analyze_packet(u_char *data, int size) {
 	printf("PACKET START=====================================>\n");
 	analyze_ether(data, size);
@@ -26,23 +35,22 @@ int analyze_packet(u_char *data, int size) {
 	return 0;
 }
 
-int analyze_ether(u_char *data, int size) {
+static int analyze_ether(u_char *data, int size) {
 	u_char *ptr;
 	int rest;
-	struct ether_header *eh;
+	struct ether_header *eth;
 	u_int16_t eth_type;
 
-	ptr = data;
-	rest = size;
-	if (rest < sizeof(struct ether_header)) {
-		fprintf(stderr, "rest(%d) < sizeof(struct ether_header)\n", rest);
+	if (size < sizeof(struct ether_header)) {
+		fprintf(stderr, "size(%d) < sizeof(struct ether_header)\n", size);
 		return -1;
 	}
-	eh = (struct ether_header *)ptr;
+	ptr = data;
+	eth = (struct ether_header *)ptr;
 	ptr += sizeof(struct ether_header);
-	rest -= sizeof(struct ether_header);
-	show_ethernet_header(eh, stdout);
-	eth_type = ntohs(eh->ether_type);
+	rest = size - sizeof(struct ether_header);
+	show_ethernet_header(eth, stdout);
+	eth_type = ntohs(eth->ether_type);
 	switch (eth_type) {
 		case ETHERTYPE_ARP:
 			analyze_arp(ptr, rest);
@@ -59,25 +67,21 @@ int analyze_ether(u_char *data, int size) {
 	return 0;
 }
 
-int analyze_arp(u_char *data, int size) {
+static int analyze_arp(u_char *data, int size) {
 	u_char *ptr;
-	int rest;
 	struct ether_arp *arp;
 
-	ptr = data;
-	rest = size;
-	if (rest < sizeof(struct ether_arp)) {
-		fprintf(stderr, "rest(%d)<sizeof(struct ether_arp)\n", rest);
+	if (size < sizeof(struct ether_arp)) {
+		fprintf(stderr, "size(%d)<sizeof(struct ether_arp)\n", size);
 		return -1;
 	}
+	ptr = data;
 	arp = (struct ether_arp *)ptr;
-	ptr += sizeof(struct ether_arp);
-	rest -= sizeof(struct ether_arp);
 	show_arp_header(arp, stdout);
 	return 0;
 }
 
-int analyze_ip(u_char *data, int size) {
+static int analyze_ip(u_char *data, int size) {
 	u_char *ptr;
 	int rest;
 	struct iphdr *iphdr;
@@ -85,15 +89,14 @@ int analyze_ip(u_char *data, int size) {
 	int option_len;
 	u_int8_t ip_type;
 
-	ptr = data;
-	rest = size;
-	if (rest < sizeof(struct iphdr)) {
-		fprintf(stderr, "rest(%d)<sizeof(struct iphdr)\n", rest);
+	if (size < sizeof(struct iphdr)) {
+		fprintf(stderr, "size(%d)<sizeof(struct iphdr)\n", size);
 		return -1;
 	}
+	ptr = data;
 	iphdr = (struct iphdr *)ptr;
 	ptr += sizeof(struct iphdr);
-	rest -= sizeof(struct iphdr);
+	rest = size - sizeof(struct iphdr);
 	option_len = iphdr->ihl * 4 - sizeof(struct iphdr);
 	if (option_len > 0) {
 		if (1500 <= option_len) {
@@ -104,10 +107,6 @@ int analyze_ip(u_char *data, int size) {
 		ptr += option_len;
 		rest -= option_len;
 	}
-	//if (checkIPchecksum(iphdr, option, option_len) == 0 ) {
-	//	fprintf(stderr, "checksum error");
-	//	return -1;
-	//}
 	show_ip_header(iphdr, option, option_len, stdout);
 	ip_type = iphdr->protocol;
 	switch(ip_type) {
@@ -127,12 +126,16 @@ int analyze_ip(u_char *data, int size) {
 	return 0;
 }
 
-int analyze_ipv6(u_char *data, int size) {
+static int analyze_ipv6(u_char *data, int size) {
 	u_char *ptr;
 	int rest;
 	struct ip6_hdr *ip6;
 	uint8_t ip6_type;
 
+	if (size < sizeof(struct ip6_hdr)) {
+		fprintf(stderr, "size(%d)<sizeof(struct ip6_hdr)\n", size);
+		return -1;
+	}
 	ptr = data;
 	rest = size;
 	if (rest < sizeof(struct ip6_hdr)) {
@@ -160,17 +163,17 @@ int analyze_ipv6(u_char *data, int size) {
 	}
 	return 0;
 }
-int analyze_icmp(u_char *data, int size) {
+static int analyze_icmp(u_char *data, int size) {
 	u_char *ptr;
 	int rest;
 	struct icmp *icmp;
 
-	ptr = data;
-	rest = size;
-	if (rest < sizeof(struct icmp)) {
-		fprintf(stderr, "rest(%d)<sizeof(struct icmp)\n", rest);
+	if (size < sizeof(struct icmp)) {
+		fprintf(stderr, "size(%d)<sizeof(struct icmp)\n", size);
 		return -1;
 	}
+	ptr = data;
+	rest = size;
 	icmp = (struct icmp *)ptr;
 	ptr += sizeof(struct icmp);
 	rest -= sizeof(struct icmp);
@@ -178,7 +181,7 @@ int analyze_icmp(u_char *data, int size) {
 	return 0;
 }
 
-int analyze_icmp6(u_char *data, int size) {
+static int analyze_icmp6(u_char *data, int size) {
 	u_char *ptr;
 	int rest;
 	struct icmp6_hdr *icmp6;
@@ -196,17 +199,17 @@ int analyze_icmp6(u_char *data, int size) {
 	return 0;
 }
 
-int analyze_tcp(u_char *data, int size) {
+static int analyze_tcp(u_char *data, int size) {
 	u_char *ptr;
 	int rest;
 	struct tcphdr *tcphdr;
 
-	ptr = data;
-	rest = size;
-	if (rest < sizeof(struct tcphdr)) {
-		fprintf(stderr, "rest(%d)<sizeof(struct tcphdr)\n", rest);
+	if (size < sizeof(struct tcphdr)) {
+		fprintf(stderr, "size(%d)<sizeof(struct tcphdr)\n", size);
 		return -1;
 	}
+	ptr = data;
+	rest = size;
 	tcphdr = (struct tcphdr *)ptr;
 	ptr += sizeof(struct tcphdr);
 	rest -= sizeof(struct tcphdr);
@@ -214,17 +217,17 @@ int analyze_tcp(u_char *data, int size) {
 	return 0;
 }
 
-int analyze_udp(u_char *data, int size) {
+static int analyze_udp(u_char *data, int size) {
 	u_char *ptr;
 	int rest;
 	struct udphdr *udphdr;
 
-	ptr = data;
-	rest = size;
-	if (rest < sizeof(struct udphdr)) {
-		fprintf(stderr, "rest(%d)<sizeof(struct udphdr)\n", rest);
+	if (size < sizeof(struct udphdr)) {
+		fprintf(stderr, "size(%d)<sizeof(struct udphdr)\n", size);
 		return -1;
 	}
+	ptr = data;
+	rest = size;
 	udphdr = (struct udphdr *)ptr;
 	ptr += sizeof(struct udphdr);
 	rest -= sizeof(struct udphdr);

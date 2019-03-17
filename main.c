@@ -2,6 +2,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
+#include <sys/time.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <linux/if.h>
@@ -11,16 +12,21 @@
 #include <netinet/ip.h>
 #include "analyze.h"
 #include <pcap.h>
+#include <pcap/dlt.h>
 
-#define CAPTURE_FILE_NAME "test.pcap"
+#define PCAP_FILE_NAME "test.pcap"
 #define TCPDUMP_MAGIC 0xa1b2c3d4
+#define BUFFER_LENGTH 65535
 
-int initialize_raw_socket(char *ifdev);
+int initialize_raw_socket(char *ifname);
 int set_promiscuous_mode(int soc, struct ifreq *req);
 
 int main(int argc, char *argv[]) {
 	int soc, size;
-	u_char buf[65535];
+	u_char buf[BUFFER_LENGTH];
+	FILE *capfp;
+	struct pcap_file_header pcaphdr;
+	struct pcap_pkthdr pkthdr4pcap;
 
 	if (argc <= 1) {
 		fprintf(stderr, "device-name");
@@ -29,88 +35,81 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "error @initialize_raw_socket: %s\n", argv[1]);
 		return -1;
 	}
-	FILE *cap_fp;
-	struct pcap_file_header pcap_header;
-	uint32_t jp_timezone;
-	cap_fp = fopen(CAPTURE_FILE_NAME, "wb+");
-	if (cap_fp == NULL) {
+	capfp = fopen(PCAP_FILE_NAME, "wb+");
+	if (capfp == NULL) {
 		perror("fopen");
 		close(soc);
 		return -1;
 	}
-	memset(&pcap_header, 0, sizeof(struct pcap_file_header));
-	pcap_header.magic = TCPDUMP_MAGIC;
-	pcap_header.version_major = PCAP_VERSION_MAJOR;
-	pcap_header.version_minor = PCAP_VERSION_MINOR;
-	jp_timezone = 3600 * 9;
-	pcap_header.thiszone = jp_timezone;
-	pcap_header.sigfigs = 0;
-	pcap_header.snaplen = 2048;
-	pcap_header.linktype = DLT_EN10MB;
-	fwrite(&pcap_header, sizeof(struct pcap_file_header), 1, cap_fp);
+	memset(&pcaphdr, 0, sizeof(struct pcap_file_header));
+	pcaphdr.magic = TCPDUMP_MAGIC;
+	pcaphdr.version_major = PCAP_VERSION_MAJOR;
+	pcaphdr.version_minor = PCAP_VERSION_MINOR;
+	pcaphdr.thiszone = -3600 * 9;
+	pcaphdr.sigfigs = 0;
+	pcaphdr.snaplen = 65535;
+	pcaphdr.linktype = DLT_EN10MB;
+	fwrite(&pcaphdr, sizeof(struct pcap_file_header), 1, capfp);
 	while (1) {
-		if((size = read(soc, buf, sizeof(buf))) <= 0) {
+		if((size = read(soc, buf, BUFFER_LENGTH)) <= 0) {
 			perror("read");
 		} else {
 			if (analyze_packet(buf, size) == -1) {
 				close(soc);
 				return -1;
 			}
-			struct pcap_pkthdr pcap_pkt_hdr;
-			gettimeofday(&pcap_pkt_hdr.ts, NULL);
-			pcap_pkt_hdr.len = pcap_pkt_hdr.caplen = size;
-			fwrite(&pcap_pkt_hdr, sizeof(struct pcap_pkthdr), 1, cap_fp);
-			fwrite(buf, size, 1, cap_fp);
+			gettimeofday(&pkthdr4pcap.ts, NULL);
+			pkthdr4pcap.len = pkthdr4pcap.caplen = size;
+			fwrite(&pkthdr4pcap, sizeof(struct pcap_pkthdr), 1, capfp);
+			fwrite(buf, size, 1, capfp);
 		}
 	}
 	close(soc);
 	return 0;
 }
 
-int initialize_raw_socket(char *ifdev) {
-	struct ifreq ifreq;
-	struct sockaddr_ll sa;
+int initialize_raw_socket(char *ifname) {
+	struct ifreq myif;
+	struct sockaddr_ll myaddr;
 	int soc;
 
-	if((soc = socket(AF_PACKET, SOCK_RAW, htonl(ETH_P_IP))) == -1) {
+	if((soc = socket(AF_PACKET, SOCK_RAW, htonl(ETH_P_ALL))) == -1) {
 		perror("socket");
 		return -1;
 	}
-	memset(&ifreq, 0, sizeof(struct ifreq));
-	if (strlen(ifdev) >= sizeof(ifreq.ifr_name)) {
-		fprintf(stderr, "%s: too long interface name.\n", ifdev);
-		close(soc);
-		return -1;
-	}
-	strcpy(ifreq.ifr_name, ifdev);
-	if (ioctl(soc, SIOCGIFINDEX, &ifreq) == -1) {
+	// All We have to do is specify ifreq.ifr_name to use network interface device.
+	// for detail, refer to "man 7 netdevice"
+	memset(&myif, 0, sizeof(struct ifreq));
+	strncpy(myif.ifr_name, ifname, sizeof(myif.ifr_name) - 1);
+	if (ioctl(soc, SIOCGIFINDEX, &myif) == -1) {
 		perror("ioctl");
 		close(soc);
 		return -1;
 	}
-	sa.sll_family = AF_PACKET;
-	sa.sll_protocol = htons(ETH_P_ALL);
-	sa.sll_ifindex = ifreq.ifr_ifindex;
-	if (bind(soc, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
+	// bind systemcall only use following members of sockaddr_ll structure.
+	// for detail, refer to "man 7 packet"
+	myaddr.sll_family = AF_PACKET;
+	myaddr.sll_protocol = htons(ETH_P_ALL);
+	myaddr.sll_ifindex = myif.ifr_ifindex;
+	if (bind(soc, (struct sockaddr *)&myaddr, sizeof(struct sockaddr_ll)) < 0) {
 		perror("bind");
 		close(soc);
 		return -1;
 	}
-
-	if(set_promiscuous_mode(soc, &ifreq)) {
+	if(set_promiscuous_mode(soc, &myif)) {
 		return -1;
 	}
 	return soc;
 }
 
-int set_promiscuous_mode(int soc, struct ifreq *ifreq) {
-	if (ioctl(soc, SIOCGIFFLAGS, ifreq) < 0) {
+int set_promiscuous_mode(int soc, struct ifreq *myif) {
+	if (ioctl(soc, SIOCGIFFLAGS, myif) < 0) {
 		perror("ioctl");
 		close(soc);
 		return -1;
 	}
-	ifreq->ifr_flags = ifreq->ifr_flags | IFF_PROMISC;
-	if (ioctl(soc, SIOCSIFFLAGS, ifreq) < 0) {
+	myif->ifr_flags = myif->ifr_flags | IFF_PROMISC;
+	if (ioctl(soc, SIOCSIFFLAGS, myif) < 0) {
 		perror("ioctl");
 		close(soc);
 		return -1;
